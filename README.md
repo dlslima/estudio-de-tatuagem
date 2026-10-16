@@ -1,15 +1,39 @@
-# Projeto React - POS 2026
+# Estúdio de Tatuagem
 
-Nesse projeto vocês deverão criar clientes web com React (JS) para a API de Agendamentos da disciplina.
+Aplicação web em React para clientes agendarem sessões e para a administração gerenciar a agenda do estúdio, tatuadores, serviços, horários e avaliações.
 
-## Instruções
+## Requisitos
 
-- Criem um fork desse repositório (um por grupo). No momento da criação do fork mudem o nome do repositório para o nome do cliente de vocês. Lembrem-se de mudar também o nome no `package.json`.
-- Na pasta `docs/` estão as especificações para cada projeto, siga o destinado ao seu grupo.
-- No GSA foi enviada a lista dos grupos com usuários admin e senhas. Recomendo que mudem as senhas assim que tiverem acesso.
-- Todos os participantes devem ter commits no repositóro.
-- Substituam esse `README.md` com informações do seu projeto.
-- Usem o projeto da [Escola de Música](https://pos-escola-de-musica-web.vercel.app/) como referência [GitHub](https://github.com/dvcirilo-ifrn/pos-escola-de-musica-web)
-- O projeto deve ser hospedado no [Vercel](https://vercel.com/).
-- Na data da entrega o projeto deverá ser demonstrado diretamente do Vercel e serão feitas perguntas referentes à implementação.
-- *Data de entrega*: 16/10/2026
+- Node.js 20.19+ ou 22.12+
+- npm
+- A API de Agendamentos da disciplina
+
+## Desenvolvimento
+
+```sh
+npm install
+npm run dev
+```
+
+O cliente usa a API configurada em `VITE_API_URL` e a organização configurada em `VITE_ORGANIZACAO`. Por padrão, usa a API da disciplina e o slug `estudio-de-tatuagem`. Para sobrescrever esses valores localmente, copie `.env.example` para `.env.local`.
+
+## Funcionalidades
+
+- Cadastro, login, recuperação e alteração de senha, sessão persistida e renovação automática do token;
+- Agendamento em quatro etapas, incluindo seleção de serviço, tatuador e horário livre;
+- Próximas sessões, histórico, cancelamento e avaliação;
+- Perfil de tatuadores, portfólio e avaliações;
+- Área administrativa com agenda diária, pedidos a confirmar e gestão do negócio;
+- Cadastro de tatuadores, serviços e disponibilidades, com envio de imagens;
+- Interface e ações exibidas conforme as permissões devolvidas pela API.
+
+## Verificação
+
+```sh
+npm run lint
+npm run build
+```
+
+## Publicação
+
+O projeto é uma aplicação Vite de página única. A configuração do Vercel encaminha as rotas para `index.html`; defina `VITE_API_URL` e `VITE_ORGANIZACAO` nas variáveis de ambiente do projeto, se precisar substituir os valores padrão.
