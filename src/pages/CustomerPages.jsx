@@ -162,11 +162,75 @@ function NavigateToService() {
 export function BookingTimePage() {
   const navigate = useNavigate()
   const booking = readBooking()
-  const [date, setDate] = useState(hojeLocal())
+  const [date, setDate] = useState('')
+  const [selectedWeekday, setSelectedWeekday] = useState(null)
   const [selected, setSelected] = useState(null)
   const resourceQuery = booking.recurso?.id ? `&recurso=${booking.recurso.id}` : ''
-  const url = booking.servico?.id ? `/horarios-livres/?servico=${booking.servico.id}&data=${date}${resourceQuery}` : null
+  const url = booking.servico?.id && date ? `/horarios-livres/?servico=${booking.servico.id}&data=${date}${resourceQuery}` : null
   const { data, loading, error, reload } = useApi(url, { enabled: Boolean(url) })
+  const schedulePath = booking.recurso?.id ? `/disponibilidades/?recurso=${booking.recurso.id}` : '/disponibilidades/'
+  const schedules = useAllPages(schedulePath, { enabled: Boolean(booking.servico?.id) })
+  const serviceResources = useAllPages(
+    booking.servico?.id && !booking.recurso?.id ? `/recursos/?servicos=${booking.servico.id}` : null,
+    { enabled: Boolean(booking.servico?.id && !booking.recurso?.id) },
+  )
+  const availableResources = booking.recurso?.id ? [booking.recurso] : listOf(serviceResources.data)
+  const resourceById = new Map(availableResources.map((resource) => [String(resource.id), resource]))
+  const scheduleRows = listOf(schedules.data)
+  const today = hojeLocal()
+  const eligibleSchedules = scheduleRows.filter((item) => resourceById.has(String(item.recurso)))
+  const weekdayNames = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+  const weekdayIndices = [...new Set(eligibleSchedules.map((item) => Number(item.dia_semana)))]
+    .filter((weekday) => weekday >= 0 && weekday < weekdayNames.length)
+    .sort((a, b) => a - b)
+  const daySchedules = eligibleSchedules.filter((item) => Number(item.dia_semana) === selectedWeekday)
+  const serviceDuration = Number(booking.servico.duracao_min)
+  const availableGroups = (Array.isArray(data) ? data : [])
+    .map((group) => {
+      const resourceSchedules = daySchedules.filter((item) => String(item.recurso) === String(group.recurso.id))
+      const horarios = Number.isInteger(serviceDuration) && serviceDuration > 0
+        ? group.horarios.filter((slot) => {
+          const [slotHour, slotMinute] = formatarHora(slot).split(':').map(Number)
+          const slotMinutes = slotHour * 60 + slotMinute
+          return resourceSchedules.some((item) => {
+            const [startHour, startMinute] = item.hora_inicio.split(':').map(Number)
+            const [endHour, endMinute] = item.hora_fim.split(':').map(Number)
+            const startMinutes = startHour * 60 + startMinute
+            const endMinutes = endHour * 60 + endMinute
+            return slotMinutes >= startMinutes
+              && slotMinutes <= endMinutes
+              && (slotMinutes - startMinutes) % serviceDuration === 0
+          })
+        })
+        : []
+      return { ...group, horarios }
+    })
+    .filter((group) => group.horarios.length)
+  const schedulesByResource = new Map()
+  for (const item of daySchedules) {
+    const resourceId = String(item.recurso)
+    if (!schedulesByResource.has(resourceId)) schedulesByResource.set(resourceId, [])
+    schedulesByResource.get(resourceId).push(item)
+  }
+  const scheduleError = schedules.error || serviceResources.error
+  const scheduleLoading = schedules.loading || serviceResources.loading
+
+  function formatDateKey(value) {
+    const year = value.getFullYear()
+    const month = String(value.getMonth() + 1).padStart(2, '0')
+    const day = String(value.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  function selectWeekday(weekday) {
+    const todayDate = new Date(`${today}T12:00:00`)
+    const currentWeekday = (todayDate.getDay() + 6) % 7
+    const daysUntil = (weekday - currentWeekday + 7) % 7
+    todayDate.setDate(todayDate.getDate() + daysUntil)
+    setSelectedWeekday(weekday)
+    setDate(formatDateKey(todayDate))
+    setSelected(null)
+  }
 
   function choose(slot, resource) {
     setSelected({ inicio: slot, recurso: resource })
@@ -189,13 +253,60 @@ export function BookingTimePage() {
       <PageHeading eyebrow="PASSO 3 DE 4" title="Escolha o melhor horário" description="Os horários exibidos já consideram a disponibilidade do artista." />
       <WizardProgress step={3} />
       <Card className="date-picker-card">
-        <FormField label="Escolha um dia">
-          <input type="date" min={hojeLocal()} value={date} onChange={(event) => { setDate(event.target.value); setSelected(null) }} />
-        </FormField>
+        <div className="weekday-availability">
+          <h2>Escolha um dia da semana</h2>
+          {scheduleLoading ? <Loading /> : scheduleError ? (
+            <ErrorState error={scheduleError} onRetry={schedules.error ? schedules.reload : serviceResources.reload} />
+          ) : eligibleSchedules.length ? (
+            <>
+              <div className="weekday-availability-options">
+                {weekdayIndices.map((weekday) => (
+                  <button
+                    aria-pressed={selectedWeekday === weekday}
+                    className={selectedWeekday === weekday ? 'weekday-availability-option is-selected' : 'weekday-availability-option'}
+                    key={weekday}
+                    onClick={() => selectWeekday(weekday)}
+                    type="button"
+                  >
+                    {weekdayNames[weekday]}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyState title="Sem horários cadastrados" description="Ainda não há disponibilidade configurada para os tatuadores deste serviço." />
+          )}
+        </div>
       </Card>
+      {date && !scheduleLoading && !scheduleError && daySchedules.length > 0 && (
+        <section className="configured-schedules" aria-label="Horários definidos pelos tatuadores">
+          <div className="configured-schedules-heading">
+            <p className="eyebrow">DISPONIBILIDADE CADASTRADA</p>
+            <h2>{formatarData(date, { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+          </div>
+          <div className="configured-schedule-list">
+            {[...schedulesByResource].map(([resourceId, items]) => {
+              const resource = resourceById.get(resourceId)
+              if (!resource) return null
+              return (
+                <div className="configured-schedule" key={resourceId}>
+                  <div className="configured-schedule-person">
+                    <Avatar src={resource.foto} name={resource.nome} />
+                    <strong>{resource.nome}</strong>
+                  </div>
+                  <div className="configured-schedule-times">
+                    {items.map((item) => <span key={item.id}>{item.hora_inicio.slice(0, 5)} – {item.hora_fim.slice(0, 5)}</span>)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <p className="calendar-availability-hint">Selecione abaixo um horário livre dentro desses períodos.</p>
+        </section>
+      )}
       {loading ? <Loading /> : error ? <ErrorState error={error} onRetry={reload} /> : (
         <div className="available-list">
-          {(Array.isArray(data) ? data : []).filter((item) => item.horarios?.length).map((group) => (
+          {availableGroups.map((group) => (
             <section className="available-group" key={group.recurso.id}>
               <div className="available-person"><Avatar src={group.recurso.foto} name={group.recurso.nome} /><div><strong>{group.recurso.nome}</strong><small>{formatarData(date, { weekday: 'long', day: 'numeric', month: 'long' })}</small></div></div>
               <div className="time-slots">{group.horarios.map((slot) => {
@@ -204,7 +315,8 @@ export function BookingTimePage() {
               })}</div>
             </section>
           ))}
-          {!(Array.isArray(data) && data.some((group) => group.horarios?.length)) && <EmptyState title="Sem horários livres neste dia" description="Tente outra data para ver mais opções." />}
+          {date && !availableGroups.length && <EmptyState title="Sem horários livres neste dia" description="Não há horários livres compatíveis com a duração do serviço neste período. Tente outra data." />}
+          {!date && <EmptyState title="Escolha um dia da semana" description="Selecione um dos dias cadastrados para consultar os horários livres." />}
         </div>
       )}
         {booking.erroAgendamento && <div className="notice notice-error" role="alert">{booking.erroAgendamento}</div>}

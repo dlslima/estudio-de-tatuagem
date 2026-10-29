@@ -163,7 +163,22 @@
 .artist-card-copy strong { font: 500 17px var(--serif); }
 .artist-card-copy small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .artist-card-copy em { margin-top: 6px; color: var(--accent-dark); font-size: 10px; font-style: normal; }
-.date-picker-card { max-width: 320px; margin-bottom: 25px; padding: 18px; }
+.date-picker-card { margin-bottom: 25px; padding: 20px; }
+.weekday-availability { display: flex; flex-direction: column; gap: 15px; }
+.weekday-availability h2, .configured-schedules-heading h2 { margin: 0; font: 500 21px var(--serif); }
+.weekday-availability-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.weekday-availability-option { min-height: 42px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 3px; background: var(--white); color: var(--ink); font-size: 11px; font-weight: 600; cursor: pointer; }
+.weekday-availability-option:hover, .weekday-availability-option.is-selected { border-color: var(--accent); background: var(--accent); color: white; }
+.configured-schedules { margin: 0 0 25px; padding: 20px; border: 1px solid var(--line); background: var(--white); }
+.configured-schedules-heading { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+.configured-schedule-list { display: flex; flex-direction: column; }
+.configured-schedule { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.configured-schedule-person { display: flex; align-items: center; gap: 10px; }
+.configured-schedule-person .avatar { width: 35px; height: 35px; }
+.configured-schedule-person strong { font: 500 15px var(--serif); }
+.configured-schedule-times { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.configured-schedule-times span { padding: 7px 9px; border: 1px solid var(--line); color: var(--ink); font-size: 10px; white-space: nowrap; }
+.calendar-availability-hint { margin: 14px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .available-list { display: flex; flex-direction: column; gap: 15px; }
 .available-group { padding: 20px; border: 1px solid var(--line); background: var(--white); }
 .available-person { display: flex; align-items: center; gap: 11px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
@@ -276,6 +291,12 @@
 .availability-row > div { display: flex; flex: 1; justify-content: space-between; }
 .availability-row strong { font: 500 16px var(--serif); }
 .availability-row span { color: var(--muted); font-size: 12px; }
+.weekday-calendar { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; border: 0; }
+.weekday-calendar legend { padding: 0; color: var(--ink); font-size: 12px; font-weight: 600; }
+.weekday-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.weekday-calendar-day { min-height: 44px; padding: 8px 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--white); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+.weekday-calendar-day:hover, .weekday-calendar-day.is-selected { border-color: var(--accent); background: var(--accent); color: white; }
+.weekday-calendar .field-hint { color: var(--muted); font-size: 11px; font-weight: 400; line-height: 1.5; }
 .time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .resource-selector { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 15px; border: 1px solid var(--line); }
 .resource-selector legend { padding: 0 7px; color: var(--ink); font-size: 12px; font-weight: 600; }

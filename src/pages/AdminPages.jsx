@@ -275,22 +275,38 @@ export function AdminAvailabilityPage() {
   const { id } = useParams()
   const artist = useApi(`/recursos/${id}/`)
   const availability = useAllPages(`/disponibilidades/?recurso=${id}`)
-  const [values, setValues] = useState({ dia_semana: '1', inicio: '10:00', fim: '20:00' })
+  const [values, setValues] = useState({ dia_semana: '1', hora_inicio: '10:00', hora_fim: '20:00' })
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
-  const days = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+  const days = [
+    { name: 'Segunda-feira', short: 'Seg' },
+    { name: 'Terça-feira', short: 'Ter' },
+    { name: 'Quarta-feira', short: 'Qua' },
+    { name: 'Quinta-feira', short: 'Qui' },
+    { name: 'Sexta-feira', short: 'Sex' },
+    { name: 'Sábado', short: 'Sáb' },
+    { name: 'Domingo', short: 'Dom' },
+  ]
+
+  function resetForm() {
+    setEditingId(null)
+    setValues({ dia_semana: '1', hora_inicio: '10:00', hora_fim: '20:00' })
+  }
 
   async function save(event) {
     event.preventDefault()
     setError(null)
+    if (values.hora_inicio >= values.hora_fim) {
+      setError(new Error('O horário de término deve ser posterior ao horário de início.'))
+      return
+    }
     setBusy(true)
     try {
-      const body = { ...values, recurso: Number(id) }
+      const body = { ...values, dia_semana: Number(values.dia_semana), recurso: Number(id) }
       if (editingId) await api.patch(`/disponibilidades/${editingId}/`, body)
       else await api.post('/disponibilidades/', body)
-      setEditingId(null)
-      setValues({ dia_semana: '1', inicio: '10:00', fim: '20:00' })
+      resetForm()
       availability.reload()
     } catch (reason) {
       setError(reason)
@@ -322,12 +338,29 @@ export function AdminAvailabilityPage() {
       <TextLink to={`/admin/tatuadores/${id}`}>← Editar tatuador</TextLink>
       <PageHeading eyebrow="DISPONIBILIDADE" title={`Horários de ${artist.data.nome}`} description="Defina os períodos em que os clientes podem marcar sessões." />
       {error && <FormError error={error} />}
-      {rows.length ? <div className="availability-list">{rows.map((item) => <div className="availability-row" key={item.id}><div><strong>{days[item.dia_semana]}</strong><span>{item.inicio} – {item.fim}</span></div><button className="text-button" type="button" onClick={() => { setEditingId(item.id); setValues({ dia_semana: String(item.dia_semana), inicio: item.inicio, fim: item.fim }) }}>Editar</button><button className="text-button danger-text" type="button" onClick={() => remove(item)}>Remover</button></div>)}</div> : <EmptyState title="Sem horários cadastrados" description="Sem disponibilidade, os clientes não conseguem agendar com este tatuador." />}
+      {rows.length ? <div className="availability-list">{rows.map((item) => <div className="availability-row" key={item.id}><div><strong>{days[item.dia_semana]?.name || 'Dia não identificado'}</strong><span>{item.hora_inicio} – {item.hora_fim}</span></div><button className="text-button" type="button" onClick={() => { setEditingId(item.id); setValues({ dia_semana: String(item.dia_semana), hora_inicio: item.hora_inicio, hora_fim: item.hora_fim }) }}>Editar</button><button className="text-button danger-text" type="button" onClick={() => remove(item)}>Remover</button></div>)}</div> : <EmptyState title="Sem horários cadastrados" description="Sem disponibilidade, os clientes não conseguem agendar com este tatuador." />}
       <form className="form-stack form-card" onSubmit={save}>
         <h2>{editingId ? 'Editar faixa de horário' : 'Adicionar horário'}</h2>
-        <FormField label="Dia da semana"><select value={values.dia_semana} onChange={(event) => setValues((current) => ({ ...current, dia_semana: event.target.value }))}>{days.map((day, index) => <option key={day} value={index}>{day}</option>)}</select></FormField>
-        <div className="time-inputs"><FormField label="Início"><input type="time" required value={values.inicio} onChange={(event) => setValues((current) => ({ ...current, inicio: event.target.value }))} /></FormField><FormField label="Fim"><input type="time" required value={values.fim} onChange={(event) => setValues((current) => ({ ...current, fim: event.target.value }))} /></FormField></div>
-        <div className="wizard-actions">{editingId && <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancelar edição</Button>}<Button type="submit" disabled={busy}>{busy ? 'Salvando...' : editingId ? 'Salvar horário' : 'Adicionar faixa'}</Button></div>
+        <fieldset className="weekday-calendar">
+          <legend>Dia da semana</legend>
+          <div className="weekday-calendar-grid">
+            {days.map((day, index) => (
+              <button
+                aria-label={day.name}
+                aria-pressed={values.dia_semana === String(index)}
+                className={values.dia_semana === String(index) ? 'weekday-calendar-day is-selected' : 'weekday-calendar-day'}
+                key={day.name}
+                onClick={() => setValues((current) => ({ ...current, dia_semana: String(index) }))}
+                type="button"
+              >
+                {day.short}
+              </button>
+            ))}
+          </div>
+          <small className="field-hint">Este horário se repete toda semana neste dia.</small>
+        </fieldset>
+        <div className="time-inputs"><FormField label="Início"><input type="time" required value={values.hora_inicio} onChange={(event) => setValues((current) => ({ ...current, hora_inicio: event.target.value }))} /></FormField><FormField label="Fim"><input type="time" required value={values.hora_fim} onChange={(event) => setValues((current) => ({ ...current, hora_fim: event.target.value }))} /></FormField></div>
+        <div className="wizard-actions">{editingId && <Button type="button" variant="outline" onClick={resetForm}>Cancelar edição</Button>}<Button type="submit" disabled={busy}>{busy ? 'Salvando...' : editingId ? 'Salvar horário' : 'Confirmar'}</Button></div>
       </form>
     </div>
   )
